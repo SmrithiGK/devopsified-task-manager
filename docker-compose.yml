@@ -1,0 +1,85 @@
+services:
+
+  # =========================
+  # MongoDB
+  # =========================
+  mongodb:
+    image: mongo:8.2
+    container_name: task-manager-mongodb
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: qwerty
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongodb_data:/data/db
+
+    networks:
+      - task-manager-network
+
+
+  # =========================
+  # Backend
+  # =========================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    image: devopsified-task-manager-backend
+
+    container_name: task-manager-backend-compose
+
+    ports:
+      - "5000:5000"
+
+    environment:
+      MONGO_URL: mongodb://admin:qwerty@mongodb:27017/taskmanager?authSource=admin
+
+    depends_on:
+      - mongodb
+
+    networks:
+      - task-manager-network
+
+
+  # =========================
+  # Frontend
+  # =========================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    image: devopsified-task-manager-frontend
+
+    container_name: task-manager-frontend-compose
+
+    ports:
+      - "5173:5173"
+
+    depends_on:
+      - backend
+
+    networks:
+      - task-manager-network
+
+
+# =========================
+# Network
+# =========================
+networks:
+  task-manager-network:
+    driver: bridge
+
+
+# =========================
+# Existing MongoDB Volume
+# =========================
+volumes:
+  mongodb_data:
+    external: true
+    name: 0abadedeba7f50a5152c5bc7f17a2706126ec4652dda77fc3eae048d6739254d
