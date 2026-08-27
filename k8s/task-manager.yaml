@@ -1,0 +1,158 @@
+# ============================================================
+# MongoDB Persistent Storage
+# ============================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# ============================================================
+# MongoDB Deployment
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:8.2
+          ports:
+            - containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: admin
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: qwerty
+          volumeMounts:
+            - name: mongodb-storage
+              mountPath: /data/db
+      volumes:
+        - name: mongodb-storage
+          persistentVolumeClaim:
+            claimName: mongodb-pvc
+
+---
+# ============================================================
+# MongoDB Service
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017
+  type: ClusterIP
+
+---
+# ============================================================
+# Backend Deployment
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-manager-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: task-manager-backend
+  template:
+    metadata:
+      labels:
+        app: task-manager-backend
+    spec:
+      containers:
+        - name: backend
+          image: smrithigk/devopsified-task-manager-backend:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: MONGO_URL
+              value: mongodb://admin:qwerty@mongodb:27017/taskmanager?authSource=admin
+
+---
+# ============================================================
+# Backend Service
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-manager-backend
+spec:
+  selector:
+    app: task-manager-backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
+
+---
+# ============================================================
+# Frontend Deployment
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-manager-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: task-manager-frontend
+  template:
+    metadata:
+      labels:
+        app: task-manager-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: smrithigk/devopsified-task-manager-frontend:latest
+          ports:
+            - containerPort: 5173
+
+---
+# ============================================================
+# Frontend Service
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: task-manager-frontend
+spec:
+  selector:
+    app: task-manager-frontend
+  ports:
+    - protocol: TCP
+      port: 5173
+      targetPort: 5173
+  type: NodePort
