@@ -17,7 +17,7 @@ connectDB();
 // Home route
 app.get("/", (req, res) => {
     res.json({
-        message: "DevOpsified Task Manager Backend is running!",
+        message: "DevOpsified Task Manager Backend is running whohooooo!",
         status: "success"
     });
 });
